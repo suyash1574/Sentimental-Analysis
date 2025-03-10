@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Sentiment Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-bg: #ffffff;
+            --secondary-bg: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+        }
+
+        [data-theme="dark"] {
+            --primary-bg: #212529;
+            --secondary-bg: #343a40;
+            --text-color: #f8f9fa;
+            --card-bg: #343a40;
+            --border-color: #495057;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background-color: var(--card-bg);
+            border-bottom: 2px solid var(--border-color);
+            border-radius: 15px 15px 0 0 !important;
+        }
+
+        .sentiment-positive {
+            color: #28a745;
+        }
+
+        .sentiment-negative {
+            color: #dc3545;
+        }
+
+        .sentiment-neutral {
+            color: #6c757d;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .sentiment-score {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background-color: var(--secondary-bg);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #0d6efd;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="btn btn-outline-primary theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <div class="container">
+        <h1 class="text-center my-5">Advanced Sentiment Analysis</h1>
+        
+        <!-- Text Analysis Section -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Analyze Text or Document</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <textarea class="form-control" id="textInput" rows="4" placeholder="Enter text to analyze..."></textarea>
+                </div>
+                
+                <div class="file-upload mb-3" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                    <p class="mb-0">Click to upload a document (TXT, PDF, DOCX)</p>
+                    <small class="text-muted">or drag and drop your file here</small>
+                    <input type="file" id="fileInput" accept=".txt,.pdf,.docx" onchange="handleFileSelect(event)">
+                </div>
+
+                <button class="btn btn-primary" onclick="analyzeText()">Analyze Sentiment</button>
+                <button class="btn btn-secondary" onclick="clearFields()">Clear</button>
+                <div id="loading" class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="textError" class="error-message"></div>
+                <div id="textAnalysisResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Sentiment Chart -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Sentiment Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sentimentChart = null;
+        let currentTheme = 'light';
+        let selectedFile = null;
+
+        // Initialize theme
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+        });
+
+        function toggleTheme() {
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            setTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function setTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            const themeIcon = document.querySelector('.theme-toggle i');
+            themeIcon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        function handleFileSelect(event) {
+            selectedFile = event.target.files[0];
+            if (selectedFile) {
+                const fileUpload = document.querySelector('.file-upload');
+                fileUpload.innerHTML = `
+                    <i class="fas fa-file-alt fa-2x mb-2"></i>
+                    <p class="mb-0">Selected: ${selectedFile.name}</p>
+                    <small class="text-muted">Click to change file</small>
+                `;
+            }
+        }
+
+        function updateChart(metrics) {
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            
+            if (sentimentChart) {
+                sentimentChart.destroy();
+            }
+
+            sentimentChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        data: [
+                            metrics.positive_words,
+                            metrics.negative_words,
+                            metrics.neutral_words
+                        ],
+                        backgroundColor: [
+                            '#28a745',
+                            '#dc3545',
+                            '#6c757d'
+                        ],
+                        borderColor: [
+                            '#28a745',
+                            '#dc3545',
+                            '#6c757d'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        async function analyzeText() {
+            const textInput = document.getElementById('textInput');
+            const textAnalysisResult = document.getElementById('textAnalysisResult');
+            const textError = document.getElementById('textError');
+            const loading = document.getElementById('loading');
+            
+            if (!textInput.value.trim() && !selectedFile) {
+                textError.textContent = 'Please enter text or upload a file';
+                textError.style.display = 'block';
+                return;
+            }
+
+            loading.style.display = 'block';
+            textError.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                if (selectedFile) {
+                    formData.append('file', selectedFile);
+                } else {
+                    formData.append('text', textInput.value);
+                }
+
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    textAnalysisResult.innerHTML = `
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Input Text:</h6>
+                                <p>${data.input}</p>
+                                <h6>Sentiment:</h6>
+                                <p class="sentiment-${data.analysis.sentiment.toLowerCase()}">
+                                    <span style="font-size: 2em;">${data.analysis.emoji}</span>
+                                    ${data.analysis.sentiment}
+                                </p>
+                                <div class="sentiment-score">
+                                    Sentiment Score: ${data.analysis.score.toFixed(2)}
+                                </div>
+                                <div class="metrics-grid">
+                                    <div class="metric-card">
+                                        <div>Total Words</div>
+                                        <div class="metric-value">${data.analysis.metrics.total_words}</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div>Positive Words</div>
+                                        <div class="metric-value sentiment-positive">${data.analysis.metrics.positive_words}</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div>Negative Words</div>
+                                        <div class="metric-value sentiment-negative">${data.analysis.metrics.negative_words}</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div>Neutral Words</div>
+                                        <div class="metric-value sentiment-neutral">${data.analysis.metrics.neutral_words}</div>
+                                    </div>
+                                </div>
+                                <h6>Details:</h6>
+                                <p>${data.analysis.details}</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    updateChart(data.analysis.metrics);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                textError.textContent = error.message;
+                textError.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function clearFields() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('textAnalysisResult').innerHTML = '';
+            selectedFile = null; // Reset selected file
+            // Optional: Clear server-side session data
+            fetch('/clear', {
+                method: 'POST'
+            });
+        }
+    </script>
+</body>
+</html>
