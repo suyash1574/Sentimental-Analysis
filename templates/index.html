@@ -4,44 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Sentiment Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --primary-bg: #ffffff;
-            --secondary-bg: #f8f9fa;
-            --text-color: #212529;
-            --card-bg: #ffffff;
-            --border-color: #dee2e6;
-        }
-
-        [data-theme="dark"] {
-            --primary-bg: #212529;
-            --secondary-bg: #343a40;
-            --text-color: #f8f9fa;
-            --card-bg: #343a40;
-            --border-color: #495057;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
         }
 
         body {
-            background-color: var(--primary-bg);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: background-color 0.3s, color 0.3s;
+            background: #1c1c1c; /* Dark background */
+            color: #e0e0e0; /* Light grey text */
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            transition: background 0.3s, color 0.3s; /* Smooth transition */
+        }
+
+        /* Light Theme */
+        .light-mode {
+            background: #f8f9fa; /* Off-white background */
+            color: #212529; /* Dark text */
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar .brand {
+            color: #ffd700; /* Gold color */
+            font-size: 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .navbar .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .navbar .nav-links a {
+            color: #e0e0e0; /* Light grey */
+            text-decoration: none;
+            font-size: 16px;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        .navbar .nav-links a:hover {
+            color: #ffd700; /* Gold color on hover */
+            text-shadow: 0 0 10px #ffd700;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: #e0e0e0; /* Light grey */
+            cursor: pointer;
+            font-size: 20px;
+            transition: color 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            color: #ffd700; /* Gold color on hover */
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 80px 20px; /* Adjust for navbar */
+            margin-top: 60px; /* Ensure content is below the navbar */
         }
 
         .container {
+            display: flex;
+            width: 100%;
             max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            flex-direction: column;
         }
 
         .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
+            background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent card */
+            border: none;
             border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
             transition: transform 0.3s, box-shadow 0.3s;
         }
@@ -52,21 +125,21 @@
         }
 
         .card-header {
-            background-color: var(--card-bg);
-            border-bottom: 2px solid var(--border-color);
+            background-color: rgba(255, 255, 255, 0.1);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 15px 15px 0 0 !important;
         }
 
         .sentiment-positive {
-            color: #28a745;
+            color: #28a745; /* Green */
         }
 
         .sentiment-negative {
-            color: #dc3545;
+            color: #dc3545; /* Red */
         }
 
         .sentiment-neutral {
-            color: #6c757d;
+            color: #6c757d; /* Grey */
         }
 
         .loading {
@@ -76,7 +149,7 @@
         }
 
         .error-message {
-            color: #dc3545;
+            color: #dc3545; /* Red */
             display: none;
             margin-top: 10px;
         }
@@ -85,13 +158,6 @@
             font-size: 1.2em;
             font-weight: bold;
             margin: 10px 0;
-        }
-
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
         }
 
         .chart-container {
@@ -108,7 +174,7 @@
         }
 
         .metric-card {
-            background-color: var(--secondary-bg);
+            background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent */
             padding: 15px;
             border-radius: 10px;
             text-align: center;
@@ -121,7 +187,7 @@
         }
 
         .file-upload {
-            border: 2px dashed var(--border-color);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             padding: 20px;
             text-align: center;
@@ -130,11 +196,21 @@
         }
 
         .file-upload:hover {
-            border-color: #0d6efd;
+            border-color: #0d6efd; /* Blue */
         }
 
         .file-upload input[type="file"] {
             display: none;
+        }
+
+        footer {
+            background: linear-gradient(135deg, #6a0dad, #ffd700); /* Violet to Gold */
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            position: relative;
+            bottom: 0;
+            width: 100%;
         }
 
         @media (max-width: 768px) {
@@ -149,54 +225,68 @@
     </style>
 </head>
 <body>
-    <button class="btn btn-outline-primary theme-toggle" onclick="toggleTheme()">
-        <i class="fas fa-moon"></i>
-    </button>
+    <nav class="navbar">
+        <div class="brand">Sentiment Analysis</div>
+        <ul class="nav-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+        </ul>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <i class="fas fa-moon"></i>
+        </button>
+    </nav>
 
-    <div class="container">
-        <h1 class="text-center my-5">Advanced Sentiment Analysis</h1>
-        
-        <!-- Text Analysis Section -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Analyze Text or Document</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <textarea class="form-control" id="textInput" rows="4" placeholder="Enter text to analyze..."></textarea>
+    <div class="main-content">
+        <div class="container">
+            <h1 class="text-center my-5">Advanced Sentiment Analysis</h1>
+            
+            <!-- Text Analysis Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Analyze Text or Document</h5>
                 </div>
-                
-                <div class="file-upload mb-3" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
-                    <p class="mb-0">Click to upload a document (TXT, PDF, DOCX)</p>
-                    <small class="text-muted">or drag and drop your file here</small>
-                    <input type="file" id="fileInput" accept=".txt,.pdf,.docx" onchange="handleFileSelect(event)">
-                </div>
-
-                <button class="btn btn-primary" onclick="analyzeText()">Analyze Sentiment</button>
-                <button class="btn btn-secondary" onclick="clearFields()">Clear</button>
-                <div id="loading" class="loading">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <textarea class="form-control" id="textInput" rows="4" placeholder="Enter text to analyze..."></textarea>
                     </div>
-                </div>
-                <div id="textError" class="error-message"></div>
-                <div id="textAnalysisResult" class="mt-3"></div>
-            </div>
-        </div>
+                    
+                    <div class="file-upload mb-3" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                        <p class="mb-0">Click to upload a document (TXT, PDF, DOCX)</p>
+                        <small class="text-muted">or drag and drop your file here</small>
+                        <input type="file" id="fileInput" accept=".txt,.pdf,.docx" onchange="handleFileSelect(event)">
+                    </div>
 
-        <!-- Sentiment Chart -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Sentiment Distribution</h5>
+                    <button class="btn btn-primary" onclick="analyzeText()">Analyze Sentiment</button>
+                    <button class="btn btn-secondary" onclick="clearFields()">Clear</button>
+                    <div id="loading" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="textError" class="error-message"></div>
+                    <div id="textAnalysisResult" class="mt-3"></div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="sentimentChart"></canvas>
+
+            <!-- Sentiment Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Sentiment Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <footer>
+        <p>Developed by Suyash</p>
+    </footer>
 
     <script>
         let sentimentChart = null;
@@ -219,7 +309,8 @@
             currentTheme = theme;
             document.documentElement.setAttribute('data-theme', theme);
             const themeIcon = document.querySelector('.theme-toggle i');
-            themeIcon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+            themeIcon.className = theme === 'light' ? 'fas fa-sun' : 'fas fa-moon'; // Change icon based on theme
+            document.body.classList.toggle('light-mode', theme === 'light'); // Apply light mode class
         }
 
         function handleFileSelect(event) {
